@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 const COLORS = {
   bg: '#F9F5F0',       // Warm vintage cream
@@ -22,6 +23,7 @@ const COLORS = {
 };
 
 export default function ProfileScreen() {
+  const router = useRouter();
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
@@ -150,7 +152,10 @@ export default function ProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.optionRow, styles.lastOptionRow]}>
+          <TouchableOpacity 
+            style={[styles.optionRow, styles.lastOptionRow]}
+            onPress={() => router.push('/login')}
+          >
             <View style={styles.optionLeft}>
               <Ionicons name="log-out-outline" size={20} color={COLORS.accent} style={styles.optionIcon} />
               <Text style={[styles.optionText, { color: COLORS.accent }]}>Sign Out</Text>

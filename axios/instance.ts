@@ -2,8 +2,8 @@
 
 import axios from "axios";
 
-// Base URL configured from environment variables or a default local fallback
-const baseURL = process.env.EXPO_BASE_URL || "http://localhost:3001";
+
+const baseURL = process.env.EXPO_PUBLIC_API_URL 
 
 export const api = axios.create({
   baseURL,

@@ -47,7 +47,7 @@ export async function clearAuthTokens() {
  * Log in an existing user
  */
 export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>("/auth/login", payload);
+  const response = await api.post<AuthResponse>("/login", payload);
   const { token, refreshToken } = response.data;
   await saveAuthTokens(token, refreshToken);
   return response.data;
@@ -57,7 +57,7 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
  * Register/Sign up a new user
  */
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
-  const response = await api.post<AuthResponse>("/auth/register", payload);
+  const response = await api.post<AuthResponse>("/register", payload);
   const { token, refreshToken } = response.data;
   await saveAuthTokens(token, refreshToken);
   return response.data;
@@ -67,7 +67,7 @@ export async function register(payload: RegisterPayload): Promise<AuthResponse> 
  * Fetch current user profile details
  */
 export async function getProfile(): Promise<User> {
-  const response = await api.get<User>("/auth/profile");
+  const response = await api.get<User>("/profile");
   return response.data;
 }
 
@@ -76,7 +76,7 @@ export async function getProfile(): Promise<User> {
  */
 export async function logout(): Promise<void> {
   try {
-    await api.post("/auth/logout");
+    await api.post("/logout");
   } catch (error) {
     console.warn("Logout request failed, cleaning local session anyway:", error);
   } finally {

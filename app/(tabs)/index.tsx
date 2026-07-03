@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  Image,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Dimensions,
-  SafeAreaView,
-} from 'react-native';
+import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,7 +35,7 @@ const SLIDES = [
     tagline: 'Timeless Analog Vision',
     price: '$249.00',
     description: 'Capture moments in classic 1970s format with retro controls and modern optics.',
-    image: require('../assets/images/retro_camera.png'),
+    image: require('../../assets/images/retro_camera.png'),
     badge: 'NEW ARRIVAL',
   },
   {
@@ -44,7 +44,7 @@ const SLIDES = [
     tagline: '80s Sound, Unplugged',
     price: '$129.00',
     description: 'Experience the tactile satisfaction of tapes with modern Bluetooth connectivity.',
-    image: require('../assets/images/retro_walkman.png'),
+    image: require('../../assets/images/retro_walkman.png'),
     badge: 'BEST SELLER',
   },
   {
@@ -53,7 +53,7 @@ const SLIDES = [
     tagline: 'Pure Acoustic Warmth',
     price: '$399.00',
     description: 'Mid-century wooden record player with premium gold and walnut finishings.',
-    image: require('../assets/images/retro_vinyl.png'),
+    image: require('../../assets/images/retro_vinyl.png'),
     badge: 'LIMITED EDITION',
   },
 ];
@@ -76,7 +76,7 @@ const PRODUCTS = [
     price: '$380.00',
     rating: 4.8,
     reviews: 12,
-    image: require('../assets/images/retro_camera.png'), // Fallback/reuse
+    image: require('../../assets/images/retro_camera.png'),
   },
   {
     id: 'p2',
@@ -85,7 +85,7 @@ const PRODUCTS = [
     price: '$95.00',
     rating: 4.6,
     reviews: 24,
-    image: require('../assets/images/retro_walkman.png'),
+    image: require('../../assets/images/retro_walkman.png'),
   },
   {
     id: 'p3',
@@ -94,7 +94,7 @@ const PRODUCTS = [
     price: '$520.00',
     rating: 4.9,
     reviews: 8,
-    image: require('../assets/images/retro_vinyl.png'),
+    image: require('../../assets/images/retro_vinyl.png'),
   },
 ];
 
@@ -132,7 +132,7 @@ export default function LandingPage() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      
+
       {/* Promo Banner */}
       <View style={styles.promoBanner}>
         <Text style={styles.promoText}>
@@ -198,7 +198,7 @@ export default function LandingPage() {
               <Text style={styles.slideDesc} numberOfLines={2}>
                 {SLIDES[currentSlide].description}
               </Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.slideBtn}
                 onPress={() => handleAddToCart(SLIDES[currentSlide].title)}
               >
@@ -248,10 +248,10 @@ export default function LandingPage() {
             onPress={() => setSelectedCategory('All')}
           >
             <View style={styles.categoryIconWrap}>
-              <Ionicons 
-                name="grid-outline" 
-                size={20} 
-                color={selectedCategory === 'All' ? COLORS.bg : COLORS.text} 
+              <Ionicons
+                name="grid-outline"
+                size={20}
+                color={selectedCategory === 'All' ? COLORS.bg : COLORS.text}
               />
             </View>
             <Text style={[
@@ -273,24 +273,24 @@ export default function LandingPage() {
               >
                 <View style={styles.categoryIconWrap}>
                   {cat.type === 'feather' && (
-                    <Ionicons 
-                      name={cat.icon as any} 
-                      size={20} 
-                      color={isSelected ? COLORS.bg : COLORS.text} 
+                    <Ionicons
+                      name={cat.icon as any}
+                      size={20}
+                      color={isSelected ? COLORS.bg : COLORS.text}
                     />
                   )}
                   {cat.type === 'material' && (
-                    <MaterialCommunityIcons 
-                      name={cat.icon as any} 
-                      size={22} 
-                      color={isSelected ? COLORS.bg : COLORS.text} 
+                    <MaterialCommunityIcons
+                      name={cat.icon as any}
+                      size={22}
+                      color={isSelected ? COLORS.bg : COLORS.text}
                     />
                   )}
                   {cat.type === 'font-awesome' && (
-                    <FontAwesome5 
-                      name={cat.icon as any} 
-                      size={18} 
-                      color={isSelected ? COLORS.bg : COLORS.text} 
+                    <FontAwesome5
+                      name={cat.icon as any}
+                      size={18}
+                      color={isSelected ? COLORS.bg : COLORS.text}
                     />
                   )}
                 </View>
@@ -316,14 +316,14 @@ export default function LandingPage() {
             const isFav = favorites.includes(product.id);
             return (
               <View key={product.id} style={styles.productCard}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.favButton}
                   onPress={() => toggleFavorite(product.id)}
                 >
-                  <Ionicons 
-                    name={isFav ? "heart" : "heart-outline"} 
-                    size={18} 
-                    color={isFav ? COLORS.accent : COLORS.text} 
+                  <Ionicons
+                    name={isFav ? "heart" : "heart-outline"}
+                    size={18}
+                    color={isFav ? COLORS.accent : COLORS.text}
                   />
                 </TouchableOpacity>
 
@@ -334,7 +334,7 @@ export default function LandingPage() {
                 <View style={styles.productDetails}>
                   <Text style={styles.productCat}>{product.category}</Text>
                   <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-                  
+
                   <View style={styles.productRatingRow}>
                     <Ionicons name="star" size={14} color={COLORS.gold} />
                     <Text style={styles.ratingVal}>{product.rating}</Text>
@@ -343,7 +343,7 @@ export default function LandingPage() {
 
                   <View style={styles.priceRow}>
                     <Text style={styles.productPrice}>{product.price}</Text>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.addCartBtn}
                       onPress={() => handleAddToCart(product.name)}
                     >

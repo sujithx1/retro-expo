@@ -9,10 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useLogin, useRegister } from '../hooks/useAuth';
 
 const COLORS = {
   bg: '#F9F5F0',       // Warm vintage cream
@@ -25,6 +27,17 @@ const COLORS = {
   border: '#E8DFD8',   // Light sand border
 };
 
+
+export const  emailValidator=(e:string)=>{
+  if(e.trim().length===0){
+    return "Please enter your email";
+  }
+  if(!e.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)){
+    return "Please enter a valid email";
+  }
+  return null;  
+}
+
 export default function LoginScreen() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
@@ -32,10 +45,61 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
 
+  const loginMutation = useLogin();
+  const registerMutation = useRegister();
+
+  const isLoading = loginMutation.isPending || registerMutation.isPending;
+  const apiError = loginMutation.error?.message || registerMutation.error?.message;
+  const error = localError || apiError;
+
+
+
+  
+  
   const handleSubmit = () => {
-    // Process authentication placeholder
-    router.replace('/(tabs)');
+    setLocalError(null);
+    loginMutation.reset();
+    registerMutation.reset();
+
+    if (!email.trim() || !password.trim()) {
+      setLocalError("Please fill out all fields.");
+      return;
+    }
+
+    if(emailValidator(email)){
+      setLocalError(emailValidator(email));
+      return;
+    }
+    
+    if (isSignUp) {
+      if (!name.trim()) {
+        setLocalError("Please enter your name.");
+        return;
+      }
+      if (!agreeTerms) {
+        setLocalError("You must agree to the Terms & Conditions.");
+        return;
+      }
+      registerMutation.mutate(
+        { name, email, password },
+        {
+          onSuccess: () => {
+            router.replace('/(tabs)');
+          },
+        }
+      );
+    } else {
+      loginMutation.mutate(
+        { email, password },
+        {
+          onSuccess: () => {
+            router.replace('/(tabs)');
+          },
+        }
+      );
+    }
   };
 
   return (
@@ -78,6 +142,13 @@ export default function LoginScreen() {
 
           {/* Form */}
           <View style={styles.formCard}>
+            {error && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={18} color={COLORS.accent} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
             {isSignUp && (
               <View style={styles.inputWrapper}>
                 <Text style={styles.inputLabel}>Full Name</Text>
@@ -149,10 +220,14 @@ export default function LoginScreen() {
               </TouchableOpacity>
             )}
 
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-              <Text style={styles.submitBtnText}>
-                {isSignUp ? 'JOIN THE CLUB' : 'WELCOME BACK'}
-              </Text>
+            <TouchableOpacity style={[styles.submitBtn, isLoading && { opacity: 0.8 }]} onPress={handleSubmit} disabled={isLoading}>
+              {isLoading ? (
+                <ActivityIndicator color={COLORS.bg} size="small" />
+              ) : (
+                <Text style={styles.submitBtnText}>
+                  {isSignUp ? 'JOIN THE CLUB' : 'WELCOME BACK'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -360,5 +435,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.text,
     marginLeft: 8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F0',
+    borderColor: '#F5C6BC',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    gap: 6,
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

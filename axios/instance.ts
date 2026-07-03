@@ -1,7 +1,6 @@
 
 
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
 
 // Base URL configured from environment variables or a default local fallback
 const baseURL = process.env.EXPO_BASE_URL || "http://localhost:3001";

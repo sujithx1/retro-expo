@@ -105,8 +105,13 @@ export default function CartScreen() {
             {/* promo code error  section  */}
             {localError && (
               <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle-outline" size={18} color={COLORS.accent} />
-                <Text style={styles.errorText}>{localError}</Text>
+                <View style={styles.errorInfoRow}>
+                  <Ionicons name="alert-circle" size={16} color={COLORS.accent} />
+                  <Text style={styles.errorText}>{localError}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setLocalError(null)} style={styles.errorCloseBtn}>
+                  <Ionicons name="close" size={16} color={COLORS.accent} />
+                </TouchableOpacity>
               </View>
             )}
             {/* promocode section  */}
@@ -381,18 +386,32 @@ const styles = StyleSheet.create({
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FDF2F0',
-    borderColor: '#F5C6BC',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.accentLight,
+    borderColor: COLORS.border,
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-    gap: 6,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  errorInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
   },
   errorText: {
     flex: 1,
     color: COLORS.accent,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  errorCloseBtn: {
+    padding: 2,
+    marginLeft: 10,
   },
 });

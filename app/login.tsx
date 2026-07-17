@@ -41,8 +41,8 @@ export const  emailValidator=(e:string)=>{
 export default function LoginScreen() {
   const router = useRouter();
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('syjithkpy@gmail.com');
+  const [password, setPassword] = useState('sujith');
   const [name, setName] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);

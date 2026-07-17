@@ -25,9 +25,6 @@ export interface RegisterPayload {
   password: string;
 }
 
-/**
- * Persist tokens to Expo's SecureStore
- */
 export async function saveAuthTokens(token: string, refreshToken?: string) {
   await SecureStore.setItemAsync("userToken", token);
   if (refreshToken) {
@@ -35,9 +32,6 @@ export async function saveAuthTokens(token: string, refreshToken?: string) {
   }
 }
 
-/**
- * Remove tokens from Expo's SecureStore
- */
 export async function clearAuthTokens() {
   await SecureStore.deleteItemAsync("userToken");
   await SecureStore.deleteItemAsync("refreshToken");

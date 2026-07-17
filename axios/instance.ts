@@ -24,10 +24,10 @@ api.interceptors.request.use(
       }
 
       // Inject authorization token
-      // const token = await SecureStore.getItemAsync("userToken");
-      // if (token && config.headers) {
-      //   config.headers.Authorization = `Bearer ${token}`;
-      // }
+      const token = await SecureStore.getItemAsync("userToken");
+      if (token && config.headers) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     } catch (error) {
       console.warn("Failed to retrieve auth token or set headers:", error);
     }

@@ -1,16 +1,19 @@
+import { getProductImage } from '@/helpers';
+import { removeFromCart, retroStore, updateCartQty } from '@/store/retro-store';
+import { Ionicons } from '@expo/vector-icons';
+import { useSelector } from '@tanstack/react-store';
+import { StatusBar } from 'expo-status-bar';
 import React, { useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
   Image,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
 
 const COLORS = {
   bg: '#F9F5F0',       // Warm vintage cream
@@ -23,67 +26,36 @@ const COLORS = {
   border: '#E8DFD8',   // Light sand border
 };
 
-interface CartItem {
-  id: string;
-  name: string;
-  category: string;
-  price: number;
-  qty: number;
-  image: any;
-}
-
 export default function CartScreen() {
-  const [items, setItems] = useState<CartItem[]>([
-    {
-      id: '1',
-      name: 'Classic Rangefinder Camera',
-      category: 'Cameras',
-      price: 249.00,
-      qty: 1,
-      image: require('../../assets/images/retro_camera.png'),
-    },
-    {
-      id: '2',
-      name: 'Retro Walkman',
-      category: 'Audio',
-      price: 129.00,
-      qty: 1,
-      image: require('../../assets/images/retro_walkman.png'),
-    },
-  ]);
-
-  const updateQty = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev
-        .map((item) => {
-          if (item.id === id) {
-            const nextQty = item.qty + delta;
-            return { ...item, qty: Math.max(0, nextQty) };
-          }
-          return item;
-        })
-        .filter((item) => item.qty > 0)
-    );
-  };
-
+  const cart = useSelector(retroStore, (state) => state.cart);
+  const [localError, setLocalError] = useState<string | null>(null);
   // Pricing calculations
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.qty, 0);
+  const subtotal = cart.reduce((acc, item) => {
+    const hasDiscount = item.product.promo_price > 0 && item.product.promo_price < item.product.price;
+    const price = hasDiscount ? item.product.promo_price : item.product.price;
+    return acc + price * item.qty;
+  }, 0);
   const shipping = subtotal > 150 ? 0 : 15.00;
   const tax = subtotal * 0.08;
   const total = subtotal + shipping + tax;
 
+  const handlePromoCode = () => {
+    setLocalError("No Promo Code Available ");
+    return false
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar style="dark" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Shopping Bag</Text>
-        <Text style={styles.itemCount}>({items.reduce((acc, i) => acc + i.qty, 0)} Items)</Text>
+        <Text style={styles.itemCount}>({cart.reduce((acc, i) => acc + i.qty, 0)} Items)</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {items.length === 0 ? (
+        {cart.length === 0 ? (
           <View style={styles.emptyBag}>
             <Ionicons name="cart-outline" size={64} color={COLORS.border} />
             <Text style={styles.emptyTitle}>Your bag is empty</Text>
@@ -93,45 +65,58 @@ export default function CartScreen() {
           <>
             {/* Items List */}
             <View style={styles.itemList}>
-              {items.map((item) => (
-                <View key={item.id} style={styles.itemCard}>
-                  <View style={styles.imageWrap}>
-                    <Image source={item.image} style={styles.productImg} resizeMode="contain" />
-                  </View>
-                  
-                  <View style={styles.itemDetails}>
-                    <Text style={styles.itemCat}>{item.category}</Text>
-                    <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                    <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-                    
-                    <View style={styles.qtyRow}>
-                      <View style={styles.qtyAdjust}>
-                        <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQty(item.id, -1)}>
-                          <Ionicons name="remove" size={16} color={COLORS.text} />
-                        </TouchableOpacity>
-                        <Text style={styles.qtyVal}>{item.qty}</Text>
-                        <TouchableOpacity style={styles.qtyBtn} onPress={() => updateQty(item.id, 1)}>
-                          <Ionicons name="add" size={16} color={COLORS.text} />
+              {cart.map((item) => {
+                const hasDiscount = item.product.promo_price > 0 && item.product.promo_price < item.product.price;
+                const price = hasDiscount ? item.product.promo_price : item.product.price;
+
+                return (
+                  <View key={item.product._id} style={styles.itemCard}>
+                    <View style={styles.imageWrap}>
+                      <Image source={getProductImage(item.product.image)} style={styles.productImg} resizeMode="contain" />
+                    </View>
+
+                    <View style={styles.itemDetails}>
+                      <Text style={styles.itemCat}>{item.product.category?.name || 'VINTAGE'}</Text>
+                      <Text style={styles.itemName} numberOfLines={1}>{item.product.name}</Text>
+                      <Text style={styles.itemPrice}>${price.toFixed(2)}</Text>
+
+                      <View style={styles.qtyRow}>
+                        <View style={styles.qtyAdjust}>
+                          <TouchableOpacity style={styles.qtyBtn} onPress={() => updateCartQty(item.product._id, -1)}>
+                            <Ionicons name="remove" size={16} color={COLORS.text} />
+                          </TouchableOpacity>
+                          <Text style={styles.qtyVal}>{item.qty}</Text>
+                          <TouchableOpacity style={styles.qtyBtn} onPress={() => updateCartQty(item.product._id, 1)}>
+                            <Ionicons name="add" size={16} color={COLORS.text} />
+                          </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity style={styles.removeBtn} onPress={() => removeFromCart(item.product._id)}>
+                          <Ionicons name="trash-outline" size={16} color={COLORS.accent} />
                         </TouchableOpacity>
                       </View>
-                      
-                      <TouchableOpacity style={styles.removeBtn} onPress={() => updateQty(item.id, -item.qty)}>
-                        <Ionicons name="trash-outline" size={16} color={COLORS.accent} />
-                      </TouchableOpacity>
                     </View>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
 
-            {/* Promo Code Input */}
+
+            {/* promo code error  section  */}
+            {localError && (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle-outline" size={18} color={COLORS.accent} />
+                <Text style={styles.errorText}>{localError}</Text>
+              </View>
+            )}
+            {/* promocode section  */}
             <View style={styles.promoSection}>
               <TextInput
                 style={styles.promoInput}
                 placeholder="Enter promo code"
                 placeholderTextColor={COLORS.textMuted}
               />
-              <TouchableOpacity style={styles.promoBtn}>
+              <TouchableOpacity style={styles.promoBtn} onPress={handlePromoCode}>
                 <Text style={styles.promoBtnText}>APPLY</Text>
               </TouchableOpacity>
             </View>
@@ -139,7 +124,7 @@ export default function CartScreen() {
             {/* Summary */}
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>Order Summary</Text>
-              
+
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLbl}>Subtotal</Text>
                 <Text style={styles.summaryVal}>${subtotal.toFixed(2)}</Text>
@@ -392,5 +377,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FDF2F0',
+    borderColor: '#F5C6BC',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+    gap: 6,
+  },
+  errorText: {
+    flex: 1,
+    color: COLORS.accent,
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

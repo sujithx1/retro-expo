@@ -16,6 +16,9 @@ import {
 } from 'react-native';
 
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useSelector} from '@tanstack/react-store';
+import { retroStore, addToCart, toggleWishlist } from '@/store/retro-store';
+import { Product } from '@/api/retro-api';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -31,43 +34,16 @@ const COLORS = {
   border: '#E8DFD8',   // Light sand border
 };
 
-// Fallback slides if no products/offers exist
-const FALLBACK_SLIDES = [
-  {
-    id: '1',
-    title: 'Classic Rangefinder',
-    tagline: 'Timeless Analog Vision',
-    price: '$249.00',
-    description: 'Capture moments in classic 1970s format with retro controls and modern optics.',
-    image: require('../../assets/images/retro_camera.png'),
-    badge: 'NEW ARRIVAL',
-  },
-  {
-    id: '2',
-    title: 'Retro Walkman',
-    tagline: '80s Sound, Unplugged',
-    price: '$129.00',
-    description: 'Experience the tactile satisfaction of tapes with modern Bluetooth connectivity.',
-    image: require('../../assets/images/retro_walkman.png'),
-    badge: 'BEST SELLER',
-  },
-  {
-    id: '3',
-    title: 'Hi-Fi Turntable',
-    tagline: 'Pure Acoustic Warmth',
-    price: '$399.00',
-    description: 'Mid-century wooden record player with premium gold and walnut finishings.',
-    image: require('../../assets/images/retro_vinyl.png'),
-    badge: 'LIMITED EDITION',
-  },
-];
-
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [favorites, setFavorites] = useState<string[]>([]);
+
+  const cart = useSelector(retroStore, (state) => state.cart);
+  const wishlist = useSelector(retroStore, (state) => state.wishlist);
+
+  const cartCount = cart.reduce((acc, item) => acc + item.qty, 0);
+  const favorites = wishlist;
 
   const { data: homeResponse, isLoading, error, refetch } = useGetHome();
   
@@ -77,12 +53,13 @@ export default function LandingPage() {
   // Build dynamic slideshow list from products having promo price or special offer
   const slides = useMemo(() => {
     if (productsList.length === 0) {
-      return FALLBACK_SLIDES;
+      return [] 
     }
     const promoProducts = productsList.filter(p => p.promo_price > 0 && p.promo_price < p.price);
     const sourceProducts = promoProducts.length > 0 ? promoProducts.slice(0, 3) : productsList.slice(0, 3);
     
     return sourceProducts.map((p) => ({
+      ...p,
       id: p._id,
       title: p.name,
       tagline: p.offer?.offerName || 'SPECIAL VINTAGE FIND',
@@ -90,6 +67,7 @@ export default function LandingPage() {
       description: p.description,
       image: getProductImage(p.image),
       badge: p.offer?.Discount ? `${p.offer.Discount}% OFF` : 'FEATURED',
+      product: p
     }));
   }, [productsList]);
 
@@ -102,16 +80,14 @@ export default function LandingPage() {
     return () => clearInterval(timer);
   }, [slides]);
 
-  const handleAddToCart = (productName: string) => {
-    setCartCount((prev) => prev + 1);
+  const handleAddToCart = (product?: Product ) => {
+    if (product && product._id) {
+      addToCart(product);
+    }
   };
 
   const toggleFavorite = (productId: string) => {
-    if (favorites.includes(productId)) {
-      setFavorites(favorites.filter(id => id !== productId));
-    } else {
-      setFavorites([...favorites, productId]);
-    }
+    toggleWishlist(productId);
   };
 
   // Filtered Products list
@@ -221,7 +197,7 @@ export default function LandingPage() {
                 </Text>
                 <TouchableOpacity
                   style={styles.slideBtn}
-                  onPress={() => handleAddToCart(activeSlide.title)}
+                  onPress={() => handleAddToCart(activeSlide.product as Product)}
                 >
                   <Text style={styles.slideBtnText}>SHOP NOW</Text>
                   <Ionicons name="arrow-forward-outline" size={16} color={COLORS.bg} />
@@ -350,7 +326,7 @@ export default function LandingPage() {
                       </View>
                       <TouchableOpacity
                         style={styles.addCartBtn}
-                        onPress={() => handleAddToCart(product.name)}
+                        onPress={() => handleAddToCart(product)}
                       >
                         <Ionicons name="add" size={18} color={COLORS.bg} />
                       </TouchableOpacity>

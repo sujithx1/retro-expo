@@ -1,7 +1,10 @@
+import { getProductImage } from '@/helpers';
+import { useGetHome } from '@/hooks/retro/usegetHome';
 import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   Image,
   ScrollView,
@@ -12,8 +15,7 @@ import {
   View,
 } from 'react-native';
 
-import {SafeAreaView} from "react-native-safe-area-context";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -29,8 +31,8 @@ const COLORS = {
   border: '#E8DFD8',   // Light sand border
 };
 
-// Slideshow Items
-const SLIDES = [
+// Fallback slides if no products/offers exist
+const FALLBACK_SLIDES = [
   {
     id: '1',
     title: 'Classic Rangefinder',
@@ -60,46 +62,6 @@ const SLIDES = [
   },
 ];
 
-// Categories
-const CATEGORIES = [
-  { id: '1', name: 'Audio', icon: 'headphones', type: 'feather' },
-  { id: '2', name: 'Cameras', icon: 'camera', type: 'feather' },
-  { id: '3', name: 'Vinyl', icon: 'record-player', type: 'material' },
-  { id: '4', name: 'Console', icon: 'gamepad-variant', type: 'material' },
-  { id: '5', name: 'Wear', icon: 'tshirt', type: 'font-awesome' },
-];
-
-// Featured Products
-const PRODUCTS = [
-  {
-    id: 'p1',
-    name: 'Super 8 Video Camera',
-    category: 'Cameras',
-    price: '$380.00',
-    rating: 4.8,
-    reviews: 12,
-    image: require('../../assets/images/retro_camera.png'),
-  },
-  {
-    id: 'p2',
-    name: 'Yellow Tape Deck Pro',
-    category: 'Audio',
-    price: '$95.00',
-    rating: 4.6,
-    reviews: 24,
-    image: require('../../assets/images/retro_walkman.png'),
-  },
-  {
-    id: 'p3',
-    name: 'Mid-Century Oak Console',
-    category: 'Vinyl',
-    price: '$520.00',
-    rating: 4.9,
-    reviews: 8,
-    image: require('../../assets/images/retro_vinyl.png'),
-  },
-];
-
 export default function LandingPage() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [cartCount, setCartCount] = useState(0);
@@ -107,20 +69,41 @@ export default function LandingPage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [favorites, setFavorites] = useState<string[]>([]);
 
+  const { data: homeResponse, isLoading, error, refetch } = useGetHome();
+  
+  const productsData = homeResponse?.data;
+  const productsList = productsData?.products || [];
+  const categoriesList = productsData?.categories || [];
+  // Build dynamic slideshow list from products having promo price or special offer
+  const slides = useMemo(() => {
+    if (productsList.length === 0) {
+      return FALLBACK_SLIDES;
+    }
+    const promoProducts = productsList.filter(p => p.promo_price > 0 && p.promo_price < p.price);
+    const sourceProducts = promoProducts.length > 0 ? promoProducts.slice(0, 3) : productsList.slice(0, 3);
+    
+    return sourceProducts.map((p) => ({
+      id: p._id,
+      title: p.name,
+      tagline: p.offer?.offerName || 'SPECIAL VINTAGE FIND',
+      price: `$${(p.promo_price || p.price).toFixed(2)}`,
+      description: p.description,
+      image: getProductImage(p.image),
+      badge: p.offer?.Discount ? `${p.offer.Discount}% OFF` : 'FEATURED',
+    }));
+  }, [productsList]);
+
   // Auto-play slideshow
   useEffect(() => {
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => {
-        const next = prev === SLIDES.length - 1 ? 0 : prev + 1;
-        return next;
-      });
+      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides]);
 
   const handleAddToCart = (productName: string) => {
     setCartCount((prev) => prev + 1);
-    // Visual feedback
   };
 
   const toggleFavorite = (productId: string) => {
@@ -130,6 +113,44 @@ export default function LandingPage() {
       setFavorites([...favorites, productId]);
     }
   };
+
+  // Filtered Products list
+  const filteredProducts = useMemo(() => {
+    return productsList.filter((product) => {
+      const matchesCategory = selectedCategory === 'All' || product.category?.name === selectedCategory;
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [productsList, selectedCategory, searchQuery]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.centeredContainer]}>
+        <ActivityIndicator size="large" color={COLORS.accent} />
+        <Text style={[styles.brandLogo, { marginTop: 16 }]}>retro.</Text>
+        <Text style={styles.brandSub}>LOADING EXCLUSIVE FINDS...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={[styles.safeArea, styles.centeredContainer, { paddingHorizontal: 20 }]}>
+        <Ionicons name="alert-circle-outline" size={64} color={COLORS.accent} />
+        <Text style={[styles.sectionTitle, { marginTop: 16, textAlign: 'center' }]}>Failed to load retro catalog</Text>
+        <Text style={[styles.slideDesc, { textAlign: 'center', marginTop: 8 }]}>
+          {(error as any).message || 'Please check your connection and try again.'}
+        </Text>
+        <TouchableOpacity style={[styles.slideBtn, { marginTop: 20, alignSelf: 'center' }]} onPress={() => refetch()}>
+          <Text style={styles.slideBtnText}>TRY AGAIN</Text>
+          <Ionicons name="refresh" size={14} color={COLORS.bg} />
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
+
+  const activeSlide = slides[currentSlide] || slides[0];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -150,9 +171,6 @@ export default function LandingPage() {
         </View>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIconBtn}>
-            <Ionicons name="search-outline" size={22} color={COLORS.text} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.headerIconBtn}>
             <Ionicons name="heart-outline" size={22} color={COLORS.text} />
             {favorites.length > 0 && (
@@ -188,51 +206,55 @@ export default function LandingPage() {
         </View>
 
         {/* Hero Slideshow / Carousel */}
-        <View style={styles.slideshowContainer}>
-          <View style={styles.slideCard}>
-            <View style={styles.slideContent}>
-              <View style={styles.badgeContainer}>
-                <Text style={styles.slideBadge}>{SLIDES[currentSlide].badge}</Text>
+        {activeSlide && (
+          <View style={styles.slideshowContainer}>
+            <View style={styles.slideCard}>
+              <View style={styles.slideContent}>
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.slideBadge}>{activeSlide.badge}</Text>
+                </View>
+                <Text style={styles.slideTagline}>{activeSlide.tagline}</Text>
+                <Text style={styles.slideTitle} numberOfLines={2}>{activeSlide.title}</Text>
+                <Text style={styles.slidePrice}>{activeSlide.price}</Text>
+                <Text style={styles.slideDesc} numberOfLines={2}>
+                  {activeSlide.description}
+                </Text>
+                <TouchableOpacity
+                  style={styles.slideBtn}
+                  onPress={() => handleAddToCart(activeSlide.title)}
+                >
+                  <Text style={styles.slideBtnText}>SHOP NOW</Text>
+                  <Ionicons name="arrow-forward-outline" size={16} color={COLORS.bg} />
+                </TouchableOpacity>
               </View>
-              <Text style={styles.slideTagline}>{SLIDES[currentSlide].tagline}</Text>
-              <Text style={styles.slideTitle}>{SLIDES[currentSlide].title}</Text>
-              <Text style={styles.slidePrice}>{SLIDES[currentSlide].price}</Text>
-              <Text style={styles.slideDesc} numberOfLines={2}>
-                {SLIDES[currentSlide].description}
-              </Text>
-              <TouchableOpacity
-                style={styles.slideBtn}
-                onPress={() => handleAddToCart(SLIDES[currentSlide].title)}
-              >
-                <Text style={styles.slideBtnText}>SHOP NOW</Text>
-                <Ionicons name="arrow-forward-outline" size={16} color={COLORS.bg} />
-              </TouchableOpacity>
+
+              <View style={styles.slideImageContainer}>
+                <Image source={activeSlide.image} style={styles.slideImage} resizeMode="contain" />
+              </View>
             </View>
 
-            <View style={styles.slideImageContainer}>
-              <Image source={SLIDES[currentSlide].image} style={styles.slideImage} resizeMode="contain" />
-            </View>
+            {/* Dots Indicator */}
+            {slides.length > 1 && (
+              <View style={styles.dotsContainer}>
+                {slides.map((_, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.dot,
+                      currentSlide === index && styles.activeDot,
+                    ]}
+                    onPress={() => setCurrentSlide(index)}
+                  />
+                ))}
+              </View>
+            )}
           </View>
-
-          {/* Dots Indicator */}
-          <View style={styles.dotsContainer}>
-            {SLIDES.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dot,
-                  currentSlide === index && styles.activeDot,
-                ]}
-                onPress={() => setCurrentSlide(index)}
-              />
-            ))}
-          </View>
-        </View>
+        )}
 
         {/* Categories Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Curated Collections</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => setSelectedCategory('All')}>
             <Text style={styles.seeAllText}>Browse All</Text>
           </TouchableOpacity>
         </View>
@@ -249,53 +271,23 @@ export default function LandingPage() {
             ]}
             onPress={() => setSelectedCategory('All')}
           >
-            <View style={styles.categoryIconWrap}>
-              <Ionicons
-                name="grid-outline"
-                size={20}
-                color={selectedCategory === 'All' ? COLORS.bg : COLORS.text}
-              />
-            </View>
             <Text style={[
               styles.categoryName,
               selectedCategory === 'All' && styles.categoryNameSelected
             ]}>All</Text>
           </TouchableOpacity>
 
-          {CATEGORIES.map((cat) => {
+          {categoriesList.map((cat) => {
             const isSelected = selectedCategory === cat.name;
             return (
               <TouchableOpacity
-                key={cat.id}
+                key={cat._id}
                 style={[
                   styles.categoryCard,
                   isSelected && styles.categoryCardSelected,
                 ]}
                 onPress={() => setSelectedCategory(cat.name)}
               >
-                <View style={styles.categoryIconWrap}>
-                  {cat.type === 'feather' && (
-                    <Ionicons
-                      name={cat.icon as any}
-                      size={20}
-                      color={isSelected ? COLORS.bg : COLORS.text}
-                    />
-                  )}
-                  {cat.type === 'material' && (
-                    <MaterialCommunityIcons
-                      name={cat.icon as any}
-                      size={22}
-                      color={isSelected ? COLORS.bg : COLORS.text}
-                    />
-                  )}
-                  {cat.type === 'font-awesome' && (
-                    <FontAwesome5
-                      name={cat.icon as any}
-                      size={18}
-                      color={isSelected ? COLORS.bg : COLORS.text}
-                    />
-                  )}
-                </View>
                 <Text style={[
                   styles.categoryName,
                   isSelected && styles.categoryNameSelected
@@ -308,54 +300,66 @@ export default function LandingPage() {
         {/* Featured Products */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Trending Retro</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeAllText}>View Grid</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.productsGrid}>
-          {PRODUCTS.filter(p => selectedCategory === 'All' || p.category === selectedCategory).map((product) => {
-            const isFav = favorites.includes(product.id);
-            return (
-              <View key={product.id} style={styles.productCard}>
-                <TouchableOpacity
-                  style={styles.favButton}
-                  onPress={() => toggleFavorite(product.id)}
-                >
-                  <Ionicons
-                    name={isFav ? "heart" : "heart-outline"}
-                    size={18}
-                    color={isFav ? COLORS.accent : COLORS.text}
-                  />
-                </TouchableOpacity>
+          {filteredProducts.length === 0 ? (
+            <View style={styles.emptyProductsContainer}>
+              <Ionicons name="search-outline" size={48} color={COLORS.border} />
+              <Text style={styles.emptyProductsText}>No vintage items found matching your filter</Text>
+            </View>
+          ) : (
+            filteredProducts.map((product) => {
+              const isFav = favorites.includes(product._id);
+              const hasDiscount = product.promo_price > 0 && product.promo_price < product.price;
+              const displayPrice = hasDiscount ? product.promo_price : product.price;
+              
+              return (
+                <View key={product._id} style={styles.productCard}>
+                  <TouchableOpacity
+                    style={styles.favButton}
+                    onPress={() => toggleFavorite(product._id)}
+                  >
+                    <Ionicons
+                      name={isFav ? "heart" : "heart-outline"}
+                      size={18}
+                      color={isFav ? COLORS.accent : COLORS.text}
+                    />
+                  </TouchableOpacity>
 
-                <View style={styles.productImageWrapper}>
-                  <Image source={product.image} style={styles.productImg} resizeMode="contain" />
-                </View>
-
-                <View style={styles.productDetails}>
-                  <Text style={styles.productCat}>{product.category}</Text>
-                  <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
-
-                  <View style={styles.productRatingRow}>
-                    <Ionicons name="star" size={14} color={COLORS.gold} />
-                    <Text style={styles.ratingVal}>{product.rating}</Text>
-                    <Text style={styles.ratingCount}>({product.reviews})</Text>
+                  <View style={styles.productImageWrapper}>
+                    <Image source={getProductImage(product.image)} style={styles.productImg} resizeMode="contain" />
                   </View>
 
-                  <View style={styles.priceRow}>
-                    <Text style={styles.productPrice}>{product.price}</Text>
-                    <TouchableOpacity
-                      style={styles.addCartBtn}
-                      onPress={() => handleAddToCart(product.name)}
-                    >
-                      <Ionicons name="add" size={18} color={COLORS.bg} />
-                    </TouchableOpacity>
+                  <View style={styles.productDetails}>
+                    <Text style={styles.productCat}>{product.category?.name || 'VINTAGE'}</Text>
+                    <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
+
+                    <View style={styles.productRatingRow}>
+                      <Ionicons name="star" size={14} color={COLORS.gold} />
+                      <Text style={styles.ratingVal}>{product.totalstars > 0 ? (product.totalstars / (product.numReview || 1)).toFixed(1) : '4.5'}</Text>
+                      <Text style={styles.ratingCount}>({product.numReview || 0})</Text>
+                    </View>
+
+                    <View style={styles.priceRow}>
+                      <View style={styles.priceContainer}>
+                        {hasDiscount && (
+                          <Text style={styles.originalPrice}>${product.price.toFixed(2)}</Text>
+                        )}
+                        <Text style={styles.productPrice}>${displayPrice.toFixed(2)}</Text>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.addCartBtn}
+                        onPress={() => handleAddToCart(product.name)}
+                      >
+                        <Ionicons name="add" size={18} color={COLORS.bg} />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
-              </View>
-            );
-          })}
+              );
+            })
+          )}
         </View>
 
         {/* Brand Story Banner */}
@@ -373,6 +377,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: COLORS.bg,
+  },
+  centeredContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   promoBanner: {
     backgroundColor: COLORS.text,
@@ -515,10 +523,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   slideTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '900',
     color: COLORS.text,
-    lineHeight: 26,
+    lineHeight: 24,
     marginBottom: 6,
   },
   slidePrice: {
@@ -702,6 +710,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  priceContainer: {
+    flexDirection: 'column',
+  },
+  originalPrice: {
+    fontSize: 11,
+    color: COLORS.textMuted,
+    textDecorationLine: 'line-through',
+    marginBottom: 1,
+  },
   productPrice: {
     fontSize: 14,
     fontWeight: '900',
@@ -745,4 +762,17 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: COLORS.accent,
   },
+  emptyProductsContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+  },
+  emptyProductsText: {
+    fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 10,
+    textAlign: 'center',
+  },
 });
+

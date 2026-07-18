@@ -19,6 +19,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useSelector} from '@tanstack/react-store';
 import { retroStore, addToCart, toggleWishlist } from '@/store/retro-store';
 import { Product } from '@/api/retro-api';
+import { useRouter } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -35,6 +36,7 @@ const COLORS = {
 };
 
 export default function LandingPage() {
+  const router = useRouter();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -86,8 +88,8 @@ export default function LandingPage() {
     }
   };
 
-  const toggleFavorite = (productId: string) => {
-    toggleWishlist(productId);
+  const toggleFavorite = (product:Product) => {
+    toggleWishlist(product);
   };
 
   // Filtered Products list
@@ -147,7 +149,7 @@ export default function LandingPage() {
         </View>
 
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerIconBtn}>
+          <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push('/(tabs)/wishlist')}>
             <Ionicons name="heart-outline" size={22} color={COLORS.text} />
             {favorites.length > 0 && (
               <View style={styles.badge}>
@@ -197,7 +199,14 @@ export default function LandingPage() {
                 </Text>
                 <TouchableOpacity
                   style={styles.slideBtn}
-                  onPress={() => handleAddToCart(activeSlide.product as Product)}
+                  onPress={() => {
+                    if (activeSlide.product?._id) {
+                      router.push({
+                        pathname: '/(tabs)/product-details',
+                        params: { id: activeSlide.product._id }
+                      });
+                    }
+                  }}
                 >
                   <Text style={styles.slideBtnText}>SHOP NOW</Text>
                   <Ionicons name="arrow-forward-outline" size={16} color={COLORS.bg} />
@@ -286,15 +295,22 @@ export default function LandingPage() {
             </View>
           ) : (
             filteredProducts.map((product) => {
-              const isFav = favorites.includes(product._id);
+              const isFav = favorites.some((fav) => fav._id === product._id);
               const hasDiscount = product.promo_price > 0 && product.promo_price < product.price;
               const displayPrice = hasDiscount ? product.promo_price : product.price;
               
               return (
-                <View key={product._id} style={styles.productCard}>
+                <TouchableOpacity
+                  key={product._id}
+                  style={styles.productCard}
+                  onPress={() => router.push({
+                    pathname: '/(tabs)/product-details',
+                    params: { id: product._id }
+                  })}
+                >
                   <TouchableOpacity
                     style={styles.favButton}
-                    onPress={() => toggleFavorite(product._id)}
+                    onPress={() => toggleFavorite(product)}
                   >
                     <Ionicons
                       name={isFav ? "heart" : "heart-outline"}
@@ -332,7 +348,7 @@ export default function LandingPage() {
                       </TouchableOpacity>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           )}

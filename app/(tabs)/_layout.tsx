@@ -1,5 +1,5 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
 
 const COLORS = {
@@ -65,6 +65,21 @@ export default function TabsLayout() {
         options={{
           href: null, // Hide modal from tab bar
         }}
+      />
+      <Tabs.Screen
+        name="product-details"
+        options={{
+          href: null, // Hide product details from tab bar
+        }}
+      />
+
+      <Tabs.Screen
+        name='wishlist'
+        options={
+          {
+            href: null
+          }
+        }
       />
     </Tabs>
   );

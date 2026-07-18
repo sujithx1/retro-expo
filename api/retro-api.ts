@@ -62,3 +62,16 @@ export const getHomeData = async () => {
   const response = await api.get<GetProductsResponse>('/home');
   return response.data;
 };
+
+export interface GetProductDetailsResponse {
+  product: Product;
+  totalstock: number;
+  relatedProduct: Product[];
+  RatingProduct?: any[];
+  CountRating?: number;
+}
+
+export const getProductDetails = async (id: string) => {
+  const response = await api.get<GetProductDetailsResponse>(`/product/detail?id=${id}`);
+  return response.data;
+};

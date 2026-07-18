@@ -8,7 +8,8 @@ export interface CartItem {
 
 export interface StoreState {
   cart: CartItem[];
-  wishlist: string[]; // array of product IDs
+  wishlist: Product[]; // array of product IDs
+
 }
 
 export const retroStore = new Store<StoreState>({
@@ -68,12 +69,13 @@ export const clearCart = () => {
   }));
 };
 
-export const toggleWishlist = (productId: string) => {
+export const toggleWishlist = (product:Product) => {
   retroStore.setState((state) => {
-    const isFav = state.wishlist.includes(productId);
+    const isFav = state.wishlist.includes(product)
+    if(!product._id)return state;
     const newWishlist = isFav
-      ? state.wishlist.filter((id) => id !== productId)
-      : [...state.wishlist, productId];
+      ? state.wishlist.filter((p) => p._id !==product._id)
+      : [...state.wishlist, product];
     return {
       ...state,
       wishlist: newWishlist,
